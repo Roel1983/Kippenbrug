@@ -11,8 +11,7 @@ railling_height = 11.0;
 
 *Side();
 *Deck();
-*Guide();
-!Pier();
+*Pier();
 
 translate([0, -bridge_width/2]) {
     rotate(90, [1, 0, 0]) Side();
@@ -23,8 +22,6 @@ translate([0,  bridge_width/2]) {
 
 rotate(90, [1,0,0]) Deck();
 rotate(180) rotate(90, [1,0,0]) Deck();
-
-color("green") rotate(90, [1,0,0]) Guide();
 
 copy_mirror([1,0,0]) {
     translate([bridge_length/2-ramp_length - 5,0 ]) {
@@ -75,25 +72,26 @@ module Pier() {
     }
 }
 
-module Guide() {
-    GroundClip() {
-        translate([0,-1]) {
-            linear_extrude(1, center = true) {
-                Railling(2*nozzle);
-            }
-        }
-    }
-} 
+
 deck_thickness = 2;
 module Deck() {
     GroundClip() {
-        translate([0,-1]) {
+        translate([0,-deck_thickness/2]) {
             render() difference() {
-                linear_extrude(bridge_width/2) {
-                    Railling(deck_thickness);
+                linear_extrude(bridge_width, center = true, convexity=3) {
+                    union() {
+                        Railling(deck_thickness);
+                        copy_mirror([1,0]) for(f = [0.05:0.1:1.0]) {
+                            translate([
+                                -bridge_length/2 + ramp_length * f,
+                                ramp_height * f
+                            ]) square(deck_thickness);
+                        }
+                    }
                 }
+                copy_mirror([0,0,1])
                 translate([0,0,bridge_width/deck_thickness - .5]) {
-                    linear_extrude(bridge_width/2) {
+                    linear_extrude(bridge_width/2, convexity=3) {
                         difference() {
                             Railling(deck_thickness - 2 * nozzle);
                             PlaceVerticals() {
@@ -103,7 +101,6 @@ module Deck() {
                         }
                     }
                 }
-                linear_extrude(.7) Railling(2*nozzle + .05);
             }
         }
     }
