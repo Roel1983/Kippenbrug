@@ -9,9 +9,10 @@ nozzle = 0.4;
 
 railling_height = 11.0;
 
-//Side();
-
-
+*Side();
+*Deck();
+*Guide();
+!Pier();
 
 translate([0, -bridge_width/2]) {
     rotate(90, [1, 0, 0]) Side();
@@ -25,6 +26,55 @@ rotate(180) rotate(90, [1,0,0]) Deck();
 
 color("green") rotate(90, [1,0,0]) Guide();
 
+copy_mirror([1,0,0]) {
+    translate([bridge_length/2-ramp_length - 5,0 ]) {
+        rotate(90) rotate(90, [1,0,0]) Pier();
+    }
+}
+
+module TopBeam() {
+    difference() {
+        beam_thickness = 6 * nozzle;
+        translate([0, -beam_thickness / 2 + 2 * nozzle]) {
+            square([bridge_width + 2 * 2*nozzle, beam_thickness], true);
+        }
+        translate([0, beam_thickness / 2]) {
+            square([bridge_width, beam_thickness], true);
+        }
+    }
+}
+
+module Pier() {
+    bottom_bridge_height = ramp_height - deck_thickness;
+    linear_extrude(1.5) {
+        translate([0, bottom_bridge_height]) TopBeam();
+        copy_mirror([1,0,0]) PierBeam();
+    }
+    linear_extrude(1.3) BraceBeam();
+
+    module BraceBeam() {
+        beam_thickness = 6 * nozzle;
+        translate([-.7, bottom_bridge_height/2]) rotate(60)
+        square([bridge_width * 1.3, beam_thickness], true);
+    }
+
+    module PierBeam() {
+        intersection() {
+            angle = 5;
+            translate([bridge_width/2 - 1.5, bottom_bridge_height]) {
+                rotate(180 + angle) {
+                    beam_thickness = 6 * nozzle;
+                    square([beam_thickness, 
+                        (bottom_bridge_height - pier_offset) / cos(angle)]);
+                }
+            }
+            translate([0, pier_offset]) {
+                square([bridge_width, bottom_bridge_height - pier_offset]);
+            }
+        }
+    }
+}
+
 module Guide() {
     GroundClip() {
         translate([0,-1]) {
@@ -34,18 +84,18 @@ module Guide() {
         }
     }
 } 
-
+deck_thickness = 2;
 module Deck() {
     GroundClip() {
         translate([0,-1]) {
             render() difference() {
                 linear_extrude(bridge_width/2) {
-                    Railling(2);
+                    Railling(deck_thickness);
                 }
-                translate([0,0,bridge_width/2 - .5]) {
+                translate([0,0,bridge_width/deck_thickness - .5]) {
                     linear_extrude(bridge_width/2) {
                         difference() {
-                            Railling(2 - 2 * nozzle);
+                            Railling(deck_thickness - 2 * nozzle);
                             PlaceVerticals() {
                                 square([1.4,2], true);
                                 Empty();
