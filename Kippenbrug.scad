@@ -1,48 +1,47 @@
-bridge_length = 220.0;
-pier_offset   =  -7.5;
-bridge_width  = 11.0;
-
-ramp_length = 60.0;
-ramp_height = 25.0;
+bridge_length   = 220.0;
+bridge_width    = 11.0;
+bridge_height   = 25.0;
+ramp_length     = 60.0;
+deck_thickness  = 2;
+pier_offset     = -7.5;
+railling_height = 11.0;
 
 nozzle = 0.4;
 
-railling_height = 11.0;
-
-*Side();
-*Deck();
+Bridge();
+*BridgeSide();
+*Pier();
 *Pier();
 
-translate([0, -bridge_width/2]) {
-    rotate(90, [1, 0, 0]) Side();
+module Bridge() {
+    BridgeSideLeft();
+    BridgeSideRight();
+    PierFront();
+    PierBack();
+    Deck();
 }
-translate([0,  bridge_width/2]) {
-    rotate(90, [1, 0, 0]) mirror([0, 0, 1]) Side();
-}
-
-rotate(90, [1,0,0]) Deck();
-rotate(180) rotate(90, [1,0,0]) Deck();
-
-copy_mirror([1,0,0]) {
-    translate([bridge_length/2-ramp_length - 5,0 ]) {
-        rotate(90) rotate(90, [1,0,0]) Pier();
-    }
-}
-
-module TopBeam() {
-    difference() {
-        beam_thickness = 6 * nozzle;
-        translate([0, -beam_thickness / 2 + 2 * nozzle]) {
-            square([bridge_width + 2 * 2*nozzle, beam_thickness], true);
-        }
-        translate([0, beam_thickness / 2]) {
-            square([bridge_width, beam_thickness], true);
+module PierFront(printable = false) {
+    if (printable) {
+        Pier();
+    } else {
+        translate([bridge_length / 2 - ramp_length - 5,0 ]) {
+            rotate(90) rotate(90, [1,0,0]) Pier();
         }
     }
 }
-
+module PierBack(printable = false) {
+    if (printable) {
+        Pier();
+    } else {
+        mirror([1,0,0]) {
+            translate([bridge_length / 2 - ramp_length - 5,0 ]) {
+                rotate(90) rotate(90, [1,0,0]) Pier();
+            }
+        }
+    }
+}
 module Pier() {
-    bottom_bridge_height = ramp_height - deck_thickness;
+    bottom_bridge_height = bridge_height - deck_thickness;
     linear_extrude(1.5) {
         translate([0, bottom_bridge_height]) TopBeam();
         copy_mirror([1,0,0]) PierBeam();
@@ -70,33 +69,49 @@ module Pier() {
             }
         }
     }
+    
+    module TopBeam() {
+        difference() {
+            beam_thickness = 6 * nozzle;
+            translate([0, -beam_thickness / 2 + 2 * nozzle]) {
+                square([bridge_width + 2 * 2*nozzle, beam_thickness], true);
+            }
+            translate([0, beam_thickness / 2]) {
+                square([bridge_width, beam_thickness], true);
+            }
+        }
+    }
 }
 
 
-deck_thickness = 2;
-module Deck() {
-    GroundClip() {
-        translate([0,-deck_thickness/2]) {
-            render() difference() {
-                linear_extrude(bridge_width, center = true, convexity=3) {
-                    union() {
-                        Railling(deck_thickness);
-                        copy_mirror([1,0]) for(f = [0.05:0.1:1.0]) {
-                            translate([
-                                -bridge_length/2 + ramp_length * f,
-                                ramp_height * f
-                            ]) square(deck_thickness);
+
+module Deck(printable = false) {
+    if (!printable) {
+        rotate(90, [1,0,0]) Deck(true);
+    } else {
+        GroundClip() {
+            translate([0,-deck_thickness/2]) {
+                render() difference() {
+                    linear_extrude(bridge_width, center = true, convexity=3) {
+                        union() {
+                            Railling(deck_thickness);
+                            copy_mirror([1,0]) for(f = [0.05:0.1:1.0]) {
+                                translate([
+                                    -bridge_length/2 + ramp_length * f,
+                                    bridge_height * f
+                                ]) square(deck_thickness);
+                            }
                         }
                     }
-                }
-                copy_mirror([0,0,1])
-                translate([0,0,bridge_width/deck_thickness - .5]) {
-                    linear_extrude(bridge_width/2, convexity=3) {
-                        difference() {
-                            Railling(deck_thickness - 2 * nozzle);
-                            PlaceVerticals() {
-                                square([1.4,2], true);
-                                Empty();
+                    copy_mirror([0,0,1])
+                    translate([0,0,bridge_width/deck_thickness - .5]) {
+                        linear_extrude(bridge_width/2, convexity=3) {
+                            difference() {
+                                Railling(deck_thickness - 2 * nozzle);
+                                PlaceVerticals() {
+                                    square([1.4,2], true);
+                                    Empty();
+                                }
                             }
                         }
                     }
@@ -106,9 +121,29 @@ module Deck() {
     }
 }
 
-module Empty() {}
 
-module Side() {
+
+module BridgeSideLeft(printable = false) {
+    if (printable) {
+        BridgeSide();
+    } else {
+        translate([0, -bridge_width / 2]) {
+            rotate(90, [1, 0, 0]) BridgeSide();
+        }
+    }
+}
+
+module BridgeSideRight(printable = false) {
+    if (printable) {
+        BridgeSide();
+    } else {
+        translate([0,  bridge_width / 2]) {
+            rotate(90, [1, 0, 0]) mirror([0, 0, 1]) BridgeSide();
+        }
+    }
+}
+
+module BridgeSide() {
     GroundClip() {
         translate([0, railling_height]) {
             linear_extrude(4 * nozzle) Railling(4 * nozzle);
@@ -126,14 +161,16 @@ module Side() {
                 Vertical(-1.7, 0.5, 2 * nozzle);
             }
         }
-
+    }
+    
+    module Vertical(o1, o2, w) {
+        translate([-w/2, -o1]) {
+            square([w, railling_height + o1 + o2]);
+        }
     }
 }
 
-module Vertical(o1, o2, w) {
-    translate([-w/2, -o1])
-    square([w, railling_height + o1 + o2]);
-}
+
 
 
 module PlaceVerticals() {
@@ -142,45 +179,47 @@ module PlaceVerticals() {
     m = 4;
     
     translate([-bridge_length/2, 0]) {
-        Distribute(ramp_length, ramp_height, n1, m) {
+        Distribute(ramp_length, bridge_height, n1, m) {
             children(0);
             children(1);
         }
     }
-    translate([-bridge_length/2 + ramp_length, ramp_height]) {
+    translate([-bridge_length/2 + ramp_length, bridge_height]) {
         Distribute(bridge_length - 2 * ramp_length, 0, n2, m, true) {
             children(0);
             children(1);
         }
     }
     translate([bridge_length/2, 0]) {
-        Distribute(-ramp_length, ramp_height, n1, m) {
+        Distribute(-ramp_length, bridge_height, n1, m) {
             children(0);
             children(1);
         }
     }
-}
-
-module Distribute(length, height, n, m, exclude_start_end=false) {
-    t = n * (m + 1);
-    o = exclude_start_end ? 1 : 0;
-    for (i = [o:t-o]) {
-        translate([length * i / t, height * i / t]) {
-            if (i % (m + 1) == 0) {
-                children(0);
-            } else {
-                children(1);
+    
+    module Distribute(length, height, n, m, exclude_start_end=false) {
+        t = n * (m + 1);
+        o = exclude_start_end ? 1 : 0;
+        for (i = [o:t-o]) {
+            translate([length * i / t, height * i / t]) {
+                if (i % (m + 1) == 0) {
+                    children(0);
+                } else {
+                    children(1);
+                }
             }
         }
     }
 }
 
 
+
+
 module Railling(width = 4 * nozzle) {
     copy_mirror([1, 0, 0]) {
         Ramp();
     }
-    translate([0, ramp_height]) {
+    translate([0, bridge_height]) {
         square(
             [bridge_length - 2 * ramp_length, width],
             center = true
@@ -189,12 +228,12 @@ module Railling(width = 4 * nozzle) {
     
     module Ramp() {
         translate([-bridge_length/2, 0]) {
-            rotate(atan2(ramp_height, ramp_length))
+            rotate(atan2(bridge_height, ramp_length))
             translate([0,-width/2]) {
-                square([norm([ramp_length, ramp_height]), width]);
+                square([norm([ramp_length, bridge_height]), width]);
             }
         }
-        translate([bridge_length/2-ramp_length,ramp_height]) {
+        translate([bridge_length/2-ramp_length,bridge_height]) {
             circle(d=width, $fn=64);
         }
 
@@ -216,4 +255,6 @@ module GroundClip() {
 module copy_mirror(vec) {
     children();
     mirror(vec) children();
+}
+module Empty() {
 }
